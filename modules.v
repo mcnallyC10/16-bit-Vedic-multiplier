@@ -1,15 +1,24 @@
 //4 bit Based on the image: "https://ars.els-cdn.com/content/image/1-s2.0-S2405844024071512-gr002.jpg"
 //16 bit based on the image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQpYNGZl258aQnVQlp5gXCF9zhMB23kkJtfTaIAHW3fSRUQP73evs_a2v75&s=10"
-module andGate(input A, B, output O);
+module andGate(A, B, O);
+  input A,B;
+  output O;
+
   assign O = A&B;
 endmodule
 
-module HA(input A, B, output S, C);
+module HA(A, B, S, C);
+  	input A, B;
+  	output S, C;
+  
 	assign S = A^B;
   	assign C = A&B;
 endmodule
 
-module FA(input A, B, Cin, output S, Cout);
+module FA(A, B, Cin, S, Cout);
+  input A, B, Cin;
+  output S, Cout;
+  
   wire w[2:0];
   
   HA ha1 (A,B,w[0],w[1]);
@@ -18,22 +27,12 @@ module FA(input A, B, Cin, output S, Cout);
   assign Cout = w[1]|w[2];
 endmodule
 
-module twoMult (A[1:0], B[1:0], S0, S1, S2, S3);
-
-  wire w[3:0];
+module fourRCA(A,B,S,Cout);
+  input [3:0]A, B;
+  output [3:0]S;
+  output Cout;
   
-  andGate a1(A[0],B[0],S0);
-  andGate a2(A[1],B[0],w[0]);
-  andGate a3(A[0],B[1],w[1]);
-  andGate a4(A[1],B[1],w[2]);
-  
-  HA ha1(w[0],w[1],S1, w[3]);
-  HA ha2(w[2],w[3],S2,S3);
-  
-endmodule
-
-module fourRCA(input A[3:0], B[3:0], S[3:0], Cout);
-  wire w[2:0];
+  wire [2:0]w;
   
   FA f1(A[0],B[0], 1'b0,S[0], w[0]);
   FA f2(A[1],B[1], w[0],S[1], w[1]);
@@ -42,8 +41,12 @@ module fourRCA(input A[3:0], B[3:0], S[3:0], Cout);
   
 endmodule 
 
-module eightRCA(input A[7:0],B[7:0],S[7:0],Cout);
-  wire w[6:0];
+module eightRCA(A,B,S,Cout);
+  input [7:0]A,B;
+  output [7:0]S;
+  output Cout;
+  
+  wire [6:0]w;
   
   FA fa1(A[0],B[0], 1'b0,S[0], w[0]);
   FA fa2(A[1],B[1], w[0],S[1], w[1]);
@@ -56,8 +59,12 @@ module eightRCA(input A[7:0],B[7:0],S[7:0],Cout);
   
 endmodule  
           
-module sixteenRCA(input A[15:0],B[15:0],S[15:0]);
-  wire w[14:0];
+module sixteenRCA(A,B,S); 
+  input [15:0]A,B;
+  output [15:0]S;
+  
+  
+  wire [14:0]w;
   reg GND;
   
   FA fa1(A[0],B[0], 1'b0,S[0], w[0]);
@@ -79,10 +86,12 @@ module sixteenRCA(input A[15:0],B[15:0],S[15:0]);
   
   
 endmodule 
-module twentyfourRCA(input A[23:0],B[23:0],S[23:0]);
-  wire w[22:0];
+module twentyfourRCA(A, B, S);
+  input [23:0]A,B;
+  output [23:0]S;
   
-  reg GND
+  wire [23:0]w;
+  
   FA fa1(A[0],B[0], 1'b0,S[0], w[0]);
   FA fa2(A[1],B[1], w[0],S[1], w[1]);
   FA fa3(A[2],B[2], w[1],S[2], w[2]);
@@ -98,24 +107,41 @@ module twentyfourRCA(input A[23:0],B[23:0],S[23:0]);
   FA fa13(A[12],B[12], w[11],S[12], w[12]);
   FA fa14(A[13],B[13], w[12],S[13], w[13]);
   FA fa15(A[14],B[14], w[13],S[14], w[14]);
-  FA fa16(A[15],B[15], w[14],S[15], Cout);
-  FA fa17(A[16],B[16], w[15],S[16], w[8]);
-  FA fa18(A[17],B[17], w[16],S[17], w[9]);
-  FA fa19(A[18],B[18], w[17],S[18], w[10]);
-  FA fa20(A[19],B[19], w[18],S[19], w[11]);
-  FA fa21(A[20],B[20], w[19],S[20], w[12]);
-  FA fa22(A[21],B[21], w[20],S[21], w[13]);
-  FA fa23(A[22],B[22], w[21],S[22], w[14]);
-  FA fa24(A[23],B[23], w[22],S[23], GND);
+  FA fa16(A[15],B[15], w[14],S[15], w[15]);
+  FA fa17(A[16],B[16], w[15],S[16], w[16]);
+  FA fa18(A[17],B[17], w[16],S[17], w[17]);
+  FA fa19(A[18],B[18], w[17],S[18], w[18]);
+  FA fa20(A[19],B[19], w[18],S[19], w[19]);
+  FA fa21(A[20],B[20], w[19],S[20], w[20]);
+  FA fa22(A[21],B[21], w[20],S[21], w[21]);
+  FA fa23(A[22],B[22], w[21],S[22], w[22]);
+  FA fa24(A[23],B[23], w[22],S[23], w[23]);
 endmodule 
 
-
-
-module fourMult(A[3:0], B[3:0], S[7:0]);
-  wire w[13:0];
-  wire h[15:0];
+module twoMult (A,B,S0,S1,S2,S3);
+  input [1:0]A, B;
+  output S0, S1, S2, S3;
   
-  reg GND;
+  wire [3:0]w;
+  
+  andGate a1(A[0],B[0],S0);
+  andGate a2(A[1],B[0],w[0]);
+  andGate a3(A[0],B[1],w[1]);
+  andGate a4(A[1],B[1],w[2]);
+  
+  HA ha1(w[0],w[1],S1, w[3]);
+  HA ha2(w[2],w[3],S2,S3);
+  
+endmodule
+
+module fourMult(A,B,S);
+  input [3:0]A, B;
+  output [7:0]S;
+  
+  wire [13:0]w;
+  wire [15:0]h;
+  
+  wire GND;
   
   twoMult t1(A[1:0], B[1:0], S[0],S[1],w[0],w[1]);
   twoMult t2(A[1:0], B[3:2], w[2], w[3],w[4],w[5]);
@@ -124,23 +150,27 @@ module fourMult(A[3:0], B[3:0], S[7:0]);
   
  
   fourRCA rca1(w[5:2], w[9:6],h[3:0], h[4]);
-  fourRCA rca2({w[1:0],2'b0},h[3:0],{S[3:2], h[7:6]},h[5]);
+  fourRCA rca2({w[1:0],2'b0},h[3:0],{h[7:6],S[3:2]},h[5]);
   
-  HA h1(h[4],h[7],h[8],h[9]);
-  fourRCA rca3(h[9:5],w[13:10],S[7:4], GND);
+  HA h1(h[4],h[5],h[8],h[9]);
+  fourRCA rca3({h[9],h[8],h[7:6]},w[13:10],S[7:4], GND);
   
 endmodule 
             
-module eightMult(A[7:0],B[7:0],S[15:0],Cout);
-  wire mult1[3:0];
-  wire mult2[7:0];
-  wire mult3[7:0];
-  wire mult4[7:0];
+module eightMult(A,B,S);
+  input [7:0]A,B;
+  output [15:0]S;
   
-  wire rca1wire[8:0];
-  wire rca2wire[3:0];
   
-  reg GND[1:0];
+  wire [3:0] mult1;
+  wire [7:0] mult2;
+  wire [7:0] mult3;
+  wire [7:0] mult4;
+  
+  wire [8:0]rca1wire;
+  wire [3:0]rca2wire;
+  
+  reg [2:0]GND;
   
   fourMult fourMult1(A[3:0],B[3:0],{mult1[3:0],S[3:0]});
   fourMult fourMult2(A[3:0],B[7:4],mult2[7:0]);
@@ -152,31 +182,32 @@ module eightMult(A[7:0],B[7:0],S[15:0],Cout);
   
   eightRCA rca2({4'b0,mult1[3:0]},rca1wire[7:0],{rca2wire[3:0],S[7:4]},GND[0]);
   
-  eightRCA rca3({rca1wire[8],3'b0,rca2wire[3:0]},mult4[7:0],S[15:8],Cout);
+  eightRCA rca3({rca1wire[8],3'b0,rca2wire[3:0]},mult4[7:0],S[15:8],GND[2]);
   
 endmodule
   
             
             
-module sixteenMult(A[15:0],B[15:0],S[31:0]);
-  wire mult1 [7:0];
-  wire mult2 [15:0];
-  wire mult3 [15:0];
-  wire mult4 [15:0];
-  
-  wire rcaSum1 [15:0];
-  wire rcaSum2 [23:0];
+module sixteenMult(A,B,S);
+  input [15:0]A,B;
+  output [31:0]S;
   
   
-  reg GND [3:0];
+  wire  [7:0] mult1;
+  wire  [15:0 ]mult2;
+  wire  [15:0] mult3;
+  wire  [15:0] mult4;
   
-  eightMult eight1(A[7:0],B[7:0],{mult1[7:0],S[7:0]},GND[0]);
-  eightMult eight2(A[15:8],B[7:0],mult2[15:0], GND[1]);
-  eightMult eight3(A[7:0],B[15:8],mult3[15:8],GND[2]);
-  eightMult eight4(A[15:8],B[15:8],mult4[15:8],GND[3]);
+  wire [15:0] rcaSum1;
+  wire [23:0] rcaSum2;
+  
+  eightMult eight1(A[7:0],B[7:0],{mult1[7:0],S[7:0]});
+  eightMult eight2(A[15:8],B[7:0],mult2[15:0]);
+  eightMult eight3(A[7:0],B[15:8],mult3[15:0]);
+  eightMult eight4(A[15:8],B[15:8],mult4[15:0]);
 
   sixteenRCA srca({8'b0, mult1[7:0]}, mult2[15:0], rcaSum1[15:0]);
   twentyfourRCA tfrca1 ({8'b0, mult3[15:0]}, {mult4[15:0],8'b0}, rcaSum2[23:0]);
-  twentyfourRCA tfrca1 ({8'b0, rcaSum1[15:0]}, rcaSum2[23:0], S[31:8]);
+  twentyfourRCA tfrca2 ({8'b0, rcaSum1[15:0]}, rcaSum2[23:0], S[31:8]);
   
 endmodule
