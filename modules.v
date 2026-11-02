@@ -150,7 +150,7 @@ module fourMult(A,B,S);
   
  
   fourRCA rca1(w[5:2], w[9:6],h[3:0], h[4]);
-  fourRCA rca2({w[1:0],2'b0},h[3:0],{h[7:6],S[3:2]},h[5]);
+  fourRCA rca2({2'b0,w[1:0]},h[3:0],{h[7:6],S[3:2]},h[5]);
   
   HA h1(h[4],h[5],h[8],h[9]);
   fourRCA rca3({h[9],h[8],h[7:6]},w[13:10],S[7:4], GND);
