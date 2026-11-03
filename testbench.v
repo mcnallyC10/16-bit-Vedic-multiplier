@@ -1,7 +1,7 @@
 /* Diagram References for each module:
 2x2 vedic multiplier: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRMQ_C0mZwlZ1D124xFTUTIAlLNZ9pw9GMy2AM12y7zDZB_zHO2C293QMx8&s=10"
 4x4 vedic multiplier: "https://ars.els-cdn.com/content/image/1-s2.0-S2405844024071512-gr003.jpg"
-8x8 vedic multiplier: "https://www.researchgate.net/publication/276200751/figure/fig2/AS:1137809817640960@1648286408020/Structure-of-Urdhva-8x8-Vedic-Multiplier.png"
+8x8 vedic multiplier: "https://www.researchgate.net/figure/Block-diagram-of-8-bit-vedic-multiplier-3-SIMULATION-AND-RESULT-31-4-bit-vedic_fig2_380466403"
 16x16 vedic multiplier: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQpYNGZl258aQnVQlp5gXCF9zhMB23kkJtfTaIAHW3fSRUQP73evs_a2v75&s=10"
 
 RCA: "https://codestall.wordpress.com/wp-content/uploads/2017/09/4-bit-adder.jpg"
