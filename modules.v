@@ -167,22 +167,23 @@ module eightMult(A,B,S);
   wire [7:0] mult3;
   wire [7:0] mult4;
   
-  wire [8:0]rca1wire;
+  wire [7:0]rca1wire;
   wire [3:0]rca2wire;
   
-  reg [2:0]GND;
-  
+  wire r1cout;
+  wire r2cout;
+  wire r3cout;
+    
   fourMult fourMult1(A[3:0],B[3:0],{mult1[3:0],S[3:0]});
   fourMult fourMult2(A[3:0],B[7:4],mult2[7:0]);
   fourMult fourMult3(A[7:4],B[3:0],mult3[7:0]);
   fourMult fourMult4(A[7:4],B[7:4],mult4[7:0]);
   
-  eightRCA rca1(mult2[7:0],mult3[7:0],rca1wire[7:0],rca1wire[8]);
+  eightRCA rca1(mult2[7:0],mult3[7:0],rca1wire[7:0],r1cout);
   
-  
-  eightRCA rca2({4'b0,mult1[3:0]},rca1wire[7:0],{rca2wire[3:0],S[7:4]},GND[0]);
-  
-  eightRCA rca3({rca1wire[8],3'b0,rca2wire[3:0]},mult4[7:0],S[15:8],GND[2]);
+  eightRCA rca2({4'b0,mult1[3:0]},rca1wire[7:0],{rca2wire[3:0],S[7:4]},r2cout);
+    
+  eightRCA rca3({2'b0,r1cout&r2cout,r1cout^r2cout,rca2wire[3:0]},mult4[7:0],S[15:8],r3cout);
   
 endmodule
   
