@@ -140,19 +140,26 @@ module eightMult(A,B,S,Cout);
   wire [3:0] mult1;
   wire [7:0] mult2, mult3, mult4;
   
-  wire [8:0]rcaWire1;
+  wire [7:0]rcaWire1;
   wire [3:0]rcaWire2;
   
   wire [4:0] unusedCarry;
+  
+  wire [1:0] usedCarry;
+  
+  wire [1:0] haOut;
   
   fourMult fourMult1(A[3:0],B[3:0],{mult1[3:0],S[3:0]}, unusedCarry[0]);
   fourMult fourMult2(A[3:0],B[7:4],mult2[7:0], unusedCarry[1]);
   fourMult fourMult3(A[7:4],B[3:0],mult3[7:0], unusedCarry[2]);
   fourMult fourMult4(A[7:4],B[7:4],mult4[7:0], unusedCarry[3]);
   
-  eightRCA eRCA1(mult2[7:0], mult3[7:0], 1'b0, rcaWire1[7:0], rcaWire1[8]);
-  eightRCA eRCA2({4'b0, mult1[3:0]}, rcaWire1[7:0], 1'b0, {rcaWire2[3:0], S[7:4]}, unusedCarry[4]);
-  eightRCA eRCA3({rcaWire1[8],3'b0,rcaWire2[3:0]}, mult4[7:0], 1'b0, S[15:8],Cout);
+  eightRCA eRCA1(mult2[7:0], mult3[7:0], 1'b0, rcaWire1[7:0], usedCarry[0]);
+  eightRCA eRCA2({4'b0, mult1[3:0]}, rcaWire1[7:0], 1'b0, {rcaWire2[3:0], S[7:4]}, usedCarry[1]);
+  
+  HA ha (usedCarry[0],usedCarry[1],haOut[0],haOut[1]);
+  
+  eightRCA eRCA3({2'b0,haOut[1],haOut[0],eRCA2[7:4]}, mult4[7:0], 1'b0, S[15:8],Cout);
   
 endmodule
 
