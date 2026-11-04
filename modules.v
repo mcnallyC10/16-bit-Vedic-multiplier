@@ -1,3 +1,4 @@
+// Code your design here
 module andGate(A, B, O);
   input A,B;
   output O;
@@ -127,16 +128,15 @@ module fourMult(A,B,S, Cout);
   
   HA h(rcaWire1[4], rcaWire2[2], haWire[0],haWire[1]);
   
-  fourRCA fRCA3({haWire[1],haWire[0],rcaWire2[1:0]}, multWire4[3:0], S[7:4],Cout);
+  fourRCA fRCA3({haWire[1],haWire[0],rcaWire2[1:0]}, multWire4[3:0],1'b0, S[7:4],Cout);
   
 endmodule 
 
-module eightMult(A,B,S,Cout);
+module eightMult(A,B,S);
   input [7:0]A,B;
-  input Cout;
   output [15:0]S;
   
-  
+  reg GND;
   wire [3:0] mult1;
   wire [7:0] mult2, mult3, mult4;
   
@@ -159,7 +159,7 @@ module eightMult(A,B,S,Cout);
   
   HA ha (usedCarry[0],usedCarry[1],haOut[0],haOut[1]);
   
-  eightRCA eRCA3({2'b0,haOut[1],haOut[0],eRCA2[7:4]}, mult4[7:0], 1'b0, S[15:8],Cout);
+  eightRCA eRCA3({2'b0,haOut[1],haOut[0],rcaWire2[3:0]}, mult4[7:0], 1'b0, S[15:8],unusedCarry[4]);
   
 endmodule
 
@@ -176,15 +176,15 @@ module sixteenMult(A,B,S);
   
   wire [6:0]   unusedCarry;
   
-  eightMult eightMult1(A[7:0],B[7:0],{mult1[7:0],S[7:0]},unusedCarry[0]);
-  eightMult eightMult2(A[15:8],B[7:0],mult2[15:0],unusedCarry[1]);
-  eightMult eightMult3(A[7:0],B[15:8],mult3[15:0],unusedCarry[2]);
-  eightMult eightMult4(A[15:8],B[15:8],mult4[15:0],unusedCarry[3]);
+  eightMult eightMult1(A[7:0],B[7:0],{mult1[7:0],S[7:0]});
+  eightMult eightMult2(A[15:8],B[7:0],mult2[15:0]);
+  eightMult eightMult3(A[7:0],B[15:8],mult3[15:0]);
+  eightMult eightMult4(A[15:8],B[15:8],mult4[15:0]);
   
-  sixteenRCA sRCA({8'b0,mult1[7:0]}, mult2[15:0],rcaWire1[15:0],unusedCarry[4]);
+  sixteenRCA sRCA({8'b0,mult1[7:0]}, mult2[15:0],1'b0,rcaWire1[15:0],unusedCarry[4]);
   
-  twentyfourRCA tfRCA1({8'b0,mult3[15:0]},{mult4[15:0],8'b0}, rcaWire2[23:0],unusedCarry[5]);
-  twentyfourRCA tfRCA2({8'b0, rcaWire1[15:0]}, rcaWire2[23:0], S[31:8], unusedCarry[6]);
+  twentyfourRCA tfRCA1({8'b0,mult3[15:0]},{mult4[15:0],8'b0}, 1'b0,rcaWire2[23:0]);
+  twentyfourRCA tfRCA2({8'b0, rcaWire1[15:0]}, rcaWire2[23:0], 1'b0,S[31:8]);
    
  
   
