@@ -6,18 +6,21 @@ module andGate(A, B, O);
   assign O = A&B;
 endmodule
 
-
 module HA(A, B, S, C);
-  	input A, B;
+  	
+  input A, B;
   	output S, C;
+
   
 	assign S = A^B;
   	assign C = A&B;
+  
 endmodule
 
 
 
 module FA(A, B, Cin, S, Cout);
+  
   input A, B, Cin;
   output S, Cout;
   
@@ -27,9 +30,11 @@ module FA(A, B, Cin, S, Cout);
   HA ha2 (w[0], Cin, S,w[2]);
   
   assign Cout = w[1]|w[2];
+
 endmodule
 
 module fourRCA(A,B,Cin,S,Cout);
+  
   input [3:0]A, B;
   input Cin;
   output [3:0]S;
@@ -45,6 +50,7 @@ module fourRCA(A,B,Cin,S,Cout);
 endmodule 
 
 module eightRCA(A,B,Cin, S,Cout);
+  
   input [7:0]A,B;
   input Cin;
   
@@ -55,10 +61,12 @@ module eightRCA(A,B,Cin, S,Cout);
   
   fourRCA f1(A[3:0],B[3:0],Cin,S[3:0],w);
   fourRCA f2(A[7:4],B[7:4],w,S[7:4],Cout);
+
 endmodule  
           
 
 module sixteenRCA(A,B,Cin,S,Cout); 
+  
   input [15:0]A,B;
   input Cin;
   output [15:0]S;
@@ -72,9 +80,8 @@ module sixteenRCA(A,B,Cin,S,Cout);
   
 endmodule
 
-
-
 module twentyfourRCA(A, B,Cin, S);
+  
   input [23:0]A,B;
   input Cin;
   output [23:0]S;
@@ -85,10 +92,11 @@ module twentyfourRCA(A, B,Cin, S);
   
   sixteenRCA f1(A[15:0],B[15:0],Cin,S[15:0],w);
   eightRCA f2(A[23:16],B[23:16],w,S[23:16], GND);
+
 endmodule 
 
-
-module twoMult (A,B,S);
+module twoMult (A,B,S);  
+  
   input [1:0]A, B;
   output [3:0]S;
   
@@ -102,10 +110,12 @@ module twoMult (A,B,S);
   HA ha1(w[0],w[1],S[1], w[3]);
   HA ha2(w[2],w[3],S[2],S[3]);
   
+  
 endmodule
 
 
 module fourMult(A,B,S, Cout);
+  
   input [3:0]A, B;
   output [7:0]S;
   output Cout;
@@ -133,6 +143,7 @@ module fourMult(A,B,S, Cout);
 endmodule 
 
 module eightMult(A,B,S);
+  
   input [7:0]A,B;
   output [15:0]S;
   
@@ -144,7 +155,6 @@ module eightMult(A,B,S);
   wire [3:0]rcaWire2;
   
   wire [4:0] unusedCarry;
-  
   wire [1:0] usedCarry;
   
   wire [1:0] haOut;
@@ -164,6 +174,7 @@ module eightMult(A,B,S);
 endmodule
 
 module sixteenMult(A,B,S);
+  
   input [15:0]A,B;
   output [31:0]S;
   
@@ -186,7 +197,4 @@ module sixteenMult(A,B,S);
   twentyfourRCA tfRCA1({8'b0,mult3[15:0]},{mult4[15:0],8'b0}, 1'b0,rcaWire2[23:0]);
   twentyfourRCA tfRCA2({8'b0, rcaWire1[15:0]}, rcaWire2[23:0], 1'b0,S[31:8]);
    
- 
-  
-  
 endmodule
