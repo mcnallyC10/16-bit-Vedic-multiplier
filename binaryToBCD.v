@@ -1,11 +1,3 @@
-// Code your design here
-parameter x = 31;
-
-module multiply(input [x:0] a,b, output [2*x:0] out);
-  assign out = a*b;
-endmodule
-
-
 /*output size comes from the formula bcd = 4*floor[log10(2^n -1)+1] where n is the number of input bits
 this is due to the fact it takes 4 bits to store one max size decimal number (9)
 */
