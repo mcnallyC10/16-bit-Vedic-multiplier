@@ -15,7 +15,7 @@
 // LEDs: LD0 = entering A, LD1 = entering B, LD2 = showing result,
 //       LD3 = decimal preview scrolling.
 //
-// The multiplier itself is the unchanged sixteenMult from modules.v.
+// The multiplier itself is the unchanged sixteenMult from vedicModules.v.
 // The '*' operator is not used anywhere in this file.
 // =============================================================================
 module top #(
