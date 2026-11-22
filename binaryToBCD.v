@@ -2,7 +2,7 @@
 this is due to the fact it takes 4 bits to store one max size decimal number (9)
 */
 
-module binToBcd_32Bits(A,B);
+module binToBcd(A,B);
   //rtoi is an inbuilt function that drops the fraction in a number, converting it from float to integer
   parameter n = 32;
   parameter bcd = $rtoi(4*$floor($log10($pow(2,n)-1)+1));
