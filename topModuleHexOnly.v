@@ -7,15 +7,26 @@ module top #(
     input  wire        clk,                // 100 MHz
     input  wire [15:0] sw,
     input  wire        btnC,               // next / confirm
-    input wire         btnD,               //decimal
-    input  wire        btnU,               // reset
+    input  wire        btnD,               //decimal
+    input  wire        btnU,               // reset#
+    input  wire        btnR,               // right
+    input  wire        btnL,               // left
     output reg  [15:0] led,
     output reg  [6:0]  seg,                // active low, seg[0]=a ... seg[6]=g
-    output reg  [3:0]  activeNumber        // active low, an[3] = leftmost digit
+    output reg  [3:0]  an        // active low, an[3] = leftmost digit
 );
-
-    wire next;   // one-clock pulse per button press
-    debounce #(.N(DEBOUNCE_BITS)) u_db (.clk(clk), .btn_in(btnC), .pulse(next));
+    // one-clock pulse per button press
+    wire next;   
+    wire scrollRight;   
+    wire scrollLeft;
+    
+    /*
+    The reset button does not need a debouncer.
+    As it does not matter if we reset it more then once from bouncing
+    */
+    debounce #(.N(DEBOUNCE_BITS)) c_db (.clk(clk), .btn_in(btnC), .pulse(next));
+    debounce #(.N(DEBOUNCE_BITS)) r_db (.clk(clk), .btn_in(btnR), .pulse(scrollRight));
+    debounce #(.N(DEBOUNCE_BITS)) l_db (.clk(clk), .btn_in(btnL), .pulse(scrollLeft));
 
     reg [15:0] switches = 16'd0;
     reg        rst = 1'b0;
@@ -78,35 +89,27 @@ module top #(
     //   buffer[4..11]  = product hex digits, MSB first
     //   buffer[12..15] = blank
     // -------------------------------------------------------------------------
-     /*
-    initalize the scroll count as a register large enough to store the number of scroll ticks
-    this register is initialized to 0 and is incremented each clock cycle. 
-    */
-    reg [$clog2(SCROLL_TICKS):0] scroll_cnt = 0;
-     //   pos = index of the leftmost displayed character, 0..12
+    
+    //   pos = index of the leftmost displayed character, 0..12
     reg [3:0]  pos = 0;
-
+    
     always @(posedge clk) begin
         /*
         if our current state is not set to scroll and show the numbers, 
-        then we reset to 0 for the pos and scroll count
+        then we reset to 0 for the pos
         */
         if (state != S_SHOW) begin
-            scroll_cnt <= 0;
             pos        <= 0;
-        /*
-        Otherwise, if our state does equal S_SHOW, and we should be scrolling.
-        Then we check to see if the scroll count is now full and thus equal to the scroll ticks.
-        If it is equal, then we reset scroll count, so it continues to scroll, and increment the pos by 1.
-        (unless the pos is at its max position. Then we set it to 0 for continuos looping)
-        */
-        end else if (scroll_cnt == SCROLL_TICKS - 1) begin
-            scroll_cnt <= 0;
-            pos        <= (pos == 4'd12) ? 0 : pos + 1;
-        //If the the scroll counter is not full, then we do our normal condition which is to increment the scroll count
-        end else begin
-            scroll_cnt <= scroll_cnt + 1;
         end
+        else begin end
+        
+        if(scrollRight) begin
+            pos <= (pos == 4'd12) ? 0 : pos + 1;
+            end
+        else if(scrollLeft) begin
+            pos <= (pos == 4'd0) ? 4'd12 : pos - 1;
+         end
+        else begin end
     end
 
 
@@ -175,7 +178,7 @@ module top #(
     end
 
     always @(*) begin
-        activeNumber = ~(4'b0001 << digit);
+        an = ~(4'b0001 << digit);
         if (code[4])
             seg = 7'b1111111;                         // blank
         else case (code[3:0])                         //   gfedcba
