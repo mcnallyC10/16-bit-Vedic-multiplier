@@ -7,7 +7,7 @@ module top #(
     input  wire        clk,                // 100 MHz
     input  wire [15:0] sw,
     input  wire        btnC,               // next / confirm
-    input  wire        btnD,               //decimal
+    input  wire        btnD,               // decimal
     input  wire        btnU,               // reset#
     input  wire        btnR,               // right
     input  wire        btnL,               // left
@@ -17,6 +17,7 @@ module top #(
 );
     // one-clock pulse per button press
     wire next;   
+    wire base;
     wire scrollRight;   
     wire scrollLeft;
     
@@ -25,6 +26,7 @@ module top #(
     As it does not matter if we reset it more then once from bouncing
     */
     debounce #(.N(DEBOUNCE_BITS)) c_db (.clk(clk), .btn_in(btnC), .pulse(next));
+    debounce #(.N(DEBOUNCE_BITS)) d_db (.clk(clk), .btn_in(btnD), .pulse(base));
     debounce #(.N(DEBOUNCE_BITS)) r_db (.clk(clk), .btn_in(btnR), .pulse(scrollRight));
     debounce #(.N(DEBOUNCE_BITS)) l_db (.clk(clk), .btn_in(btnL), .pulse(scrollLeft));
 
@@ -43,8 +45,14 @@ module top #(
     reg  [15:0] opB  = 16'd0;
     reg  [31:0] prod = 32'd0;
     wire [31:0] vedic_out;
+    wire [19:0] sw_bcd;
+    wire [39:0] vedic_bcd;
 
     sixteenMult u_mult (.A(opA), .B(opB), .S(vedic_out));
+    
+    //converts the binary of the switches and the vedic respectively to binary converted decimal.
+    binToBcd #(.n(16)) sw_bin_bcd(sw, sw_bcd); //16 switches = 16 bits -> n = 16
+    binToBcd #(.n(32)) vedic_bin_bcd(vedic_out, vedic_bcd); //32 bit output -> n=32
 
     // -------------------------------------------------------------------------
     // Control FSM
@@ -55,6 +63,11 @@ module top #(
                S_SHOW = 2'd3;   // scroll the product
 
     reg [1:0] state    = S_A;
+    //stores whether we should display in hex numbers or in decimal numbers. 0 for hex, 1 for decimal.
+    reg hexOrDecimal   = 1'b0;
+    
+    //   pos = index of the leftmost displayed character, 0..12 for hex. 0-15 for decimal
+    reg [3:0]  pos;
 
     always @(posedge clk) begin
         if (rst) begin //reset
@@ -81,6 +94,11 @@ module top #(
                 S_SHOW: if (next) state <= S_A;
             endcase
         end
+        if(base) begin
+        hexOrDecimal <= ~hexOrDecimal;
+        pos = 0;
+        end
+        else begin end
     end
 
     // -------------------------------------------------------------------------
@@ -89,10 +107,6 @@ module top #(
     //   buffer[4..11]  = product hex digits, MSB first
     //   buffer[12..15] = blank
     // -------------------------------------------------------------------------
-    
-    //   pos = index of the leftmost displayed character, 0..12
-    reg [3:0]  pos = 0;
-    
     always @(posedge clk) begin
         /*
         if our current state is not set to scroll and show the numbers, 
@@ -102,14 +116,22 @@ module top #(
             pos        <= 0;
         end
         else begin end
-        
-        if(scrollRight) begin
-            pos <= (pos == 4'd12) ? 0 : pos + 1;
+        if(hexOrDecimal == 1'b0) begin
+            if(scrollRight) begin
+                pos <= (pos == 4'd12) ? 0 : pos + 1;
+             end
+            else if(scrollLeft) begin
+                pos <= (pos == 4'd0) ? 4'd12 : pos - 1;
             end
-        else if(scrollLeft) begin
-            pos <= (pos == 4'd0) ? 4'd12 : pos - 1;
-         end
         else begin end
+        end else begin 
+            if(scrollRight) begin
+                pos <= (pos == 4'd15) ? 0 : pos + 1;
+             end
+            else if(scrollLeft) begin
+                pos <= (pos == 4'd0) ? 4'd15 : pos - 1;
+            end
+        end
     end
 
 
@@ -148,6 +170,24 @@ module top #(
         end
     endfunction
     
+    function [4:0] decimalAt;
+    input [4:0] index;
+    input [39:0] bcd;
+    
+    reg [3:0] j;
+    reg [39:0] shifted;
+    
+    begin
+        if (index < 5'd2 || index > 5'd12)
+                decimalAt = 5'b1_0000;// blank on the display
+        else begin
+            j = index - 5'd2;
+            shifted = bcd >> {(3'd7 - j), 2'b00};
+            decimalAt = {1'b0,shifted[3:0]};
+        end
+    end
+    
+    endfunction
     // -------------------------------------------------------------------------
     // Seven-segment multiplexor
     // -------------------------------------------------------------------------
@@ -169,11 +209,20 @@ module top #(
     reg  [4:0]  code; // {blank, nibble} where blank tells us if we should display a blank integer, and nibble is our number.
 
     always @(*) begin
-        case (state)
+    case (hexOrDecimal)
+        0: case (state)
             S_A, S_B: code = {1'b0, sw_shifted[3:0]};  // live switch value
             //grab the number at the index specified.
             S_SHOW:   code = buf_at({1'b0, pos} + (5'd3 - digit), prod);
             default:  code = 5'b10000;
+        endcase
+        1: case (state)
+            S_A, S_B: code = decimalAt({1'b0, pos} + (5'd3 - digit), {16'b0, sw_bcd});
+            //grab the number at the index specified.
+            S_SHOW:   code = decimalAt({1'b0, pos} + (5'd3 - digit), vedic_bcd);
+            default:  code = 5'b10000;
+         endcase
+         default: code = 5'b10000; //should never happen. Unless pos magically became x or z
         endcase
     end
 
@@ -209,6 +258,10 @@ module top #(
         led[0] = (state == S_A);
         led[1] = (state == S_B);
         led[2] = (state == S_SHOW);
+        //led 3 = hex on
+        //led 4 = decimal on
+        led[3] = (1'b0 == hexOrDecimal);
+        led[4] = (1'b1 == hexOrDecimal);
     end
 
 endmodule
