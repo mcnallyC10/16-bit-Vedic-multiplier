@@ -67,7 +67,7 @@ module top #(
     reg hexOrDecimal   = 1'b0;
     
     //   pos = index of the leftmost displayed character, 0..12 for hex. 0-15 for decimal
-    reg [3:0]  pos;
+    reg [3:0]  pos = 4'd4;
 
     always @(posedge clk) begin
         if (rst) begin //reset
@@ -96,7 +96,6 @@ module top #(
         end
         if(base) begin
         hexOrDecimal <= ~hexOrDecimal;
-        pos = 0;
         end
         else begin end
     end
@@ -108,27 +107,20 @@ module top #(
     //   buffer[12..15] = blank
     // -------------------------------------------------------------------------
     always @(posedge clk) begin
-        /*
-        if our current state is not set to scroll and show the numbers, 
-        then we reset to 0 for the pos
-        */
-        if (state != S_SHOW) begin
-            pos        <= 0;
-        end
-        else begin end
         if(hexOrDecimal == 1'b0) begin
             if(scrollRight) begin
-                pos <= (pos == 4'd12) ? 0 : pos + 1;
+                pos <= (pos >= 4'd12) ? 0 : pos + 1;
              end
             else if(scrollLeft) begin
                 pos <= (pos == 4'd0) ? 4'd12 : pos - 1;
             end
-        else begin end
-        end else begin 
-            if(scrollRight) begin
-                pos <= (pos == 4'd15) ? 0 : pos + 1;
+            else begin end
+        end    
+        else begin 
+            if(scrollLeft) begin
+                pos <= (pos >= 4'd15) ? 0 : pos + 1;
              end
-            else if(scrollLeft) begin
+            else if(scrollRight) begin
                 pos <= (pos == 4'd0) ? 4'd15 : pos - 1;
             end
         end
@@ -162,7 +154,7 @@ module top #(
                 shifts the product by 2 bits, and then by 7-j. 
                 This shifts the product we're looking for to indices 0-3, for easy access.
                 */
-                shifted = p >> {(3'd7 - j), 2'b00};
+                shifted = p >> {(3'd7-j), 2'b00};
                 //return the hex number found at the given index. 
                 //concatenate 0 with the hex digit, as 0 means a number is to be shown. 1 means blank
                 buf_at  = {1'b0, shifted[3:0]}; 
@@ -171,22 +163,22 @@ module top #(
     endfunction
     
     function [4:0] decimalAt;
-    input [4:0] index;
-    input [39:0] bcd;
+        input [4:0] index;
+        input [39:0] bcd;
     
-    reg [3:0] j;
-    reg [39:0] shifted;
+        reg [3:0] j;
+        reg [39:0] shifted;
     
-    begin
-        if (index < 5'd2 || index > 5'd12)
-                decimalAt = 5'b1_0000;// blank on the display
-        else begin
-            j = index - 5'd2;
-            shifted = bcd >> {(3'd7 - j), 2'b00};
-            decimalAt = {1'b0,shifted[3:0]};
+        begin
+            if (index < 5'd4 || index > 5'd14)
+                    decimalAt = 5'b1_0000;// blank on the display
+            else begin
+                j = index;
+                //shifted = bcd >> {(4'd9 - j), 2'b00};
+                shifted = bcd >> 4*(j-5'd4);                
+                decimalAt = {1'b0,shifted[3:0]};
+            end
         end
-    end
-    
     endfunction
     // -------------------------------------------------------------------------
     // Seven-segment multiplexor
@@ -210,16 +202,17 @@ module top #(
 
     always @(*) begin
     case (hexOrDecimal)
-        0: case (state)
+        1'b0: case (state)
             S_A, S_B: code = {1'b0, sw_shifted[3:0]};  // live switch value
             //grab the number at the index specified.
             S_SHOW:   code = buf_at({1'b0, pos} + (5'd3 - digit), prod);
             default:  code = 5'b10000;
         endcase
-        1: case (state)
-            S_A, S_B: code = decimalAt({1'b0, pos} + (5'd3 - digit), {16'b0, sw_bcd});
+        1'b1: case (state)
+        //todo delete ({1'b0, pos} + (5'd3 - digit)
+            S_A, S_B: code = decimalAt(pos+digit, {20'b0,sw_bcd});
             //grab the number at the index specified.
-            S_SHOW:   code = decimalAt({1'b0, pos} + (5'd3 - digit), vedic_bcd);
+            S_SHOW:   code = decimalAt(pos+digit, vedic_bcd);
             default:  code = 5'b10000;
          endcase
          default: code = 5'b10000; //should never happen. Unless pos magically became x or z
