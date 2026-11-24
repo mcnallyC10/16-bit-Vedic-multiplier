@@ -11,10 +11,10 @@ module top #(
     input  wire        btnU,               // reset
     output reg  [15:0] led,
     output reg  [6:0]  seg,                // active low, seg[0]=a ... seg[6]=g
-    output reg  [3:0]  an                  // active low, an[3] = leftmost digit
+    output reg  [3:0]  activeNumber        // active low, an[3] = leftmost digit
 );
 
-wire next;   // one-clock pulse per button press
+    wire next;   // one-clock pulse per button press
     debounce #(.N(DEBOUNCE_BITS)) u_db (.clk(clk), .btn_in(btnC), .pulse(next));
 
     reg [15:0] switches = 16'd0;
@@ -77,37 +77,70 @@ wire next;   // one-clock pulse per button press
     //   buffer[0..3]   = blank
     //   buffer[4..11]  = product hex digits, MSB first
     //   buffer[12..15] = blank
-    //   pos = index of the leftmost displayed character, 0..12
     // -------------------------------------------------------------------------
-    reg [26:0] scroll_cnt = 27'd0;
-    reg [3:0]  pos        = 4'd0;
+     /*
+    initalize the scroll count as a register large enough to store the number of scroll ticks
+    this register is initialized to 0 and is incremented each clock cycle. 
+    */
+    reg [$clog2(SCROLL_TICKS):0] scroll_cnt = 0;
+     //   pos = index of the leftmost displayed character, 0..12
+    reg [3:0]  pos = 0;
 
     always @(posedge clk) begin
+        /*
+        if our current state is not set to scroll and show the numbers, 
+        then we reset to 0 for the pos and scroll count
+        */
         if (state != S_SHOW) begin
-            scroll_cnt <= 27'd0;
-            pos        <= 4'd0;
+            scroll_cnt <= 0;
+            pos        <= 0;
+        /*
+        Otherwise, if our state does equal S_SHOW, and we should be scrolling.
+        Then we check to see if the scroll count is now full and thus equal to the scroll ticks.
+        If it is equal, then we reset scroll count, so it continues to scroll, and increment the pos by 1.
+        (unless the pos is at its max position. Then we set it to 0 for continuos looping)
+        */
         end else if (scroll_cnt == SCROLL_TICKS - 1) begin
-            scroll_cnt <= 27'd0;
-            pos        <= (pos == 4'd12) ? 4'd0 : pos + 1'b1;
+            scroll_cnt <= 0;
+            pos        <= (pos == 4'd12) ? 0 : pos + 1;
+        //If the the scroll counter is not full, then we do our normal condition which is to increment the scroll count
         end else begin
-            scroll_cnt <= scroll_cnt + 1'b1;
+            scroll_cnt <= scroll_cnt + 1;
         end
     end
 
 
-    // Character at buffer index idx: {blank, hex nibble}
+    // Character at buffer index: {blank, hex nibble}
     function [4:0] buf_at;
-        input [4:0]  idx;
-        input [31:0] p;
-        reg   [2:0]  j;
+        input [4:0]  index; //4 bits to store 8 possible 
+        input [31:0] p; //p = product of the multiplication
+        
+        /*
+        this is our normalized index. Which ignores all padding. We use this to figure out the purely hex numbers.
+        Ex: if our hex number was 0_12345678_0000. j would only store 12345678. As it removes the first 4. And drops the bits for the last 1.
+        The code doing this normalizaton is found below.
+        */
+        reg   [2:0]  j; 
         reg   [31:0] shifted;
+        
         begin
-            if (idx < 5'd4 || idx > 5'd11)
-                buf_at = 5'b10000;                        // blank
+        /*
+        if our index is less then 4. or if it greater then 11. 
+        We return 0. This is the padding we add to make the product more readable.
+        */
+            if (index < 5'd4 || index > 5'd11)
+                buf_at = 5'b1_0000;// blank on the display
             else begin
-                j       = idx - 5'd4;                     // 0 = most significant digit
+                //normalize our index.
+                j = index - 5'd4; // 0 = most significant digit here. As we scroll by showing the larger hex number first
+                /*
+                shifts the product by 2 bits, and then by 7-j. 
+                This shifts the product we're looking for to indices 0-3, for easy access.
+                */
                 shifted = p >> {(3'd7 - j), 2'b00};
-                buf_at  = {1'b0, shifted[3:0]};
+                //return the hex number found at the given index. 
+                //concatenate 0 with the hex digit, as 0 means a number is to be shown. 1 means blank
+                buf_at  = {1'b0, shifted[3:0]}; 
             end
         end
     endfunction
@@ -115,23 +148,34 @@ wire next;   // one-clock pulse per button press
     // -------------------------------------------------------------------------
     // Seven-segment multiplexor
     // -------------------------------------------------------------------------
+    
+    /*
+     refresh every Refresh bits, we cycle through each seven segment (4 in total)
+     and refresh the number to ensure it is the correct one. 
+    */
+    
     reg  [REFRESH_BITS-1:0] refresh = 0;
     always @(posedge clk) refresh <= refresh + 1'b1;
-
-    wire [1:0]  digit = refresh[REFRESH_BITS-1 -: 2];   // 0 = rightmost
-    wire [15:0] sw_shifted = switches >> {digit, 2'b00};
-    reg  [4:0]  code;                                   // {blank, nibble}
+       
+    /*
+    we take the 2 most significant bits (most signiciant or least significant does not matter here)
+    we take those 2 bits as a 2^2 number, 4 segments total. This lets us decide which seven segment display to refresh.
+    */
+    wire [1:0]  digit = refresh[REFRESH_BITS-1 -: 2];  
+    wire [15:0] sw_shifted = switches >> {digit, 2'b00}; // this is the switch number to be displayed on the 7 segment display
+    reg  [4:0]  code; // {blank, nibble} where blank tells us if we should display a blank integer, and nibble is our number.
 
     always @(*) begin
         case (state)
-            S_A, S_B: code = {1'b0, sw_shifted[3:0]};               // live switch value
+            S_A, S_B: code = {1'b0, sw_shifted[3:0]};  // live switch value
+            //grab the number at the index specified.
             S_SHOW:   code = buf_at({1'b0, pos} + (5'd3 - digit), prod);
             default:  code = 5'b10000;
         endcase
     end
 
     always @(*) begin
-        an = ~(4'b0001 << digit);
+        activeNumber = ~(4'b0001 << digit);
         if (code[4])
             seg = 7'b1111111;                         // blank
         else case (code[3:0])                         //   gfedcba
