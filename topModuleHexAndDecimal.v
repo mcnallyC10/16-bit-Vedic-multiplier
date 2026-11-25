@@ -1,8 +1,6 @@
 `timescale 1ns / 1ps
 module top #(
     parameter DEBOUNCE_BITS = 20,          // 2^20 cycles @ 100 MHz = ~10.5 ms
-    parameter SCROLL_TICKS  = 40_000_000,  // 0.4 s per scroll step
-    parameter REFRESH_BITS  = 19           // each digit lit for 2^17 cycles (~1.3 ms)
 )(
     input  wire        clk,                // 100 MHz
     input  wire [15:0] sw,
@@ -168,9 +166,9 @@ module top #(
     // -------------------------------------------------------------------------
     
     //two MSB's cycle 'digit' every 2^17 clocks (~1.3 ms), updating to displayed digit from 1-4 on the 7 segment multiplexors
-    reg  [REFRESH_BITS-1:0] refresh = 0;
+    reg  [18:0] refresh = 0;
     always @(posedge clk) refresh <= refresh + 1'b1;
-    wire [1:0]  digit = refresh[REFRESH_BITS-1 -: 2];  
+    wire [1:0]  digit = refresh[18:17];  
 
     
     wire [15:0] sw_shifted = switches >> {digit, 2'b00}; // input switches are shifted by 0, 4, 8 or 12 bits depending on current digit
