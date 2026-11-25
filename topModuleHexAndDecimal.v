@@ -8,7 +8,7 @@ module top #(
     input  wire [15:0] sw,
     input  wire        btnC,               // next / confirm
     input  wire        btnD,               // decimal
-    input  wire        btnU,               // reset#
+    input  wire        btnU,               // reset
     input  wire        btnR,               // right
     input  wire        btnL,               // left
     output reg  [15:0] led,
@@ -26,7 +26,7 @@ module top #(
     As it does not matter if we reset it more then once from bouncing
     */
     debounce #(.N(DEBOUNCE_BITS)) c_db (.clk(clk), .btn_in(btnC), .pulse(next));
-    debounce #(.N(DEBOUNCE_BITS)) d_db (.clk(clk), .btn_in(btnD), .pulse(convert));
+    debounce #(.N(DEBOUNCE_BITS)) d_db (.clk(clk), .btn_in(btnD), .pulse(base));
     debounce #(.N(DEBOUNCE_BITS)) r_db (.clk(clk), .btn_in(btnR), .pulse(scrollRight));
     debounce #(.N(DEBOUNCE_BITS)) l_db (.clk(clk), .btn_in(btnL), .pulse(scrollLeft));
 
@@ -50,7 +50,7 @@ module top #(
 
     sixteenMult u_mult (.A(opA), .B(opB), .S(vedic_out));
     
-    //converts the binary of the switches and the vedic respectively to binary converted decimal.
+    //converts the binary of the switches and the vedic respectively to binary coded decimal.
     binToBcd #(.n(16)) sw_bin_bcd(sw, sw_bcd); //16 switches = 16 bits -> n = 16
     binToBcd #(.n(32)) vedic_bin_bcd(vedic_out, vedic_bcd); //32 bit output -> n=32
 
@@ -129,35 +129,18 @@ module top #(
 
     // Character at buffer index: {blank, hex nibble}
     function [4:0] buf_at;
-        input [4:0]  index; //4 bits to store 8 possible 
+        input [4:0]  index; //5 bits to store flag + 0-15
         input [31:0] p; //p = product of the multiplication
-        
-        /*
-        this is our normalized index. Which ignores all padding. We use this to figure out the purely hex numbers.
-        Ex: if our hex number was 0_12345678_0000. j would only store 12345678. As it removes the first 4. And drops the bits for the last 1.
-        The code doing this normalizaton is found below.
-        */
-        reg   [2:0]  j; 
+        reg   [2:0]  j; //j is a 3-bit number from 0 to 7: identifies which hex digit you want
         reg   [31:0] shifted;
         
         begin
-        /*
-        if our index is less then 4. or if it greater then 11. 
-        We return 0. This is the padding we add to make the product more readable.
-        */
             if (index < 5'd4 || index > 5'd11)
                 buf_at = 5'b1_0000;// blank on the display
             else begin
-                //normalize our index.
                 j = index - 5'd4; // 0 = most significant digit here. As we scroll by showing the larger hex number first
-                /*
-                shifts the product by 2 bits, and then by 7-j. 
-                This shifts the product we're looking for to indices 0-3, for easy access.
-                */
-                shifted = p >> {(3'd7-j), 2'b00};
-                //return the hex number found at the given index. 
-                //concatenate 0 with the hex digit, as 0 means a number is to be shown. 1 means blank
-                buf_at  = {1'b0, shifted[3:0]}; 
+                shifted = p >> {(3'd7-j), 2'b00}; //shifts the product by (7-j) * 4 bits
+                buf_at  = {1'b0, shifted[3:0]}; //return the hex number found at the given index. 
             end
         end
     endfunction
@@ -190,7 +173,7 @@ module top #(
     wire [1:0]  digit = refresh[REFRESH_BITS-1 -: 2];  
 
     
-    wire [15:0] sw_shifted = switches >> {digit, 2'b00}; // input switches are shifted by 0, 4, 8 or 12 decimals depending on current digit
+    wire [15:0] sw_shifted = switches >> {digit, 2'b00}; // input switches are shifted by 0, 4, 8 or 12 bits depending on current digit
     reg  [4:0]  code; // {blank flag, hex nibble} blank being a flag for empty spaces
 
     always @(*) begin
@@ -201,7 +184,6 @@ module top #(
             default:  code = 5'b10000;
         endcase
         1'b1: case (state)
-        //todo delete ({1'b0, pos} + (5'd3 - digit)
             S_A, S_B: code = decimalAt(pos+digit, {20'b0,sw_bcd});
             //grab the number at the index specified.
             S_SHOW:   code = decimalAt(pos+digit, vedic_bcd);
