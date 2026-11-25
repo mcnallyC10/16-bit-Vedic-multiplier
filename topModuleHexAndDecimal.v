@@ -26,7 +26,7 @@ module top #(
     As it does not matter if we reset it more then once from bouncing
     */
     debounce #(.N(DEBOUNCE_BITS)) c_db (.clk(clk), .btn_in(btnC), .pulse(next));
-    debounce #(.N(DEBOUNCE_BITS)) d_db (.clk(clk), .btn_in(btnD), .pulse(base));
+    debounce #(.N(DEBOUNCE_BITS)) d_db (.clk(clk), .btn_in(btnD), .pulse(convert));
     debounce #(.N(DEBOUNCE_BITS)) r_db (.clk(clk), .btn_in(btnR), .pulse(scrollRight));
     debounce #(.N(DEBOUNCE_BITS)) l_db (.clk(clk), .btn_in(btnL), .pulse(scrollLeft));
 
@@ -184,27 +184,19 @@ module top #(
     // Seven-segment multiplexor
     // -------------------------------------------------------------------------
     
-    /*
-     refresh every Refresh bits, we cycle through each seven segment (4 in total)
-     and refresh the number to ensure it is the correct one. 
-    */
-    
+    //two MSB's cycle 'digit' every 2^17 clocks (~1.3 ms), updating to displayed digit from 1-4 on the 7 segment multiplexors
     reg  [REFRESH_BITS-1:0] refresh = 0;
     always @(posedge clk) refresh <= refresh + 1'b1;
-       
-    /*
-    we take the 2 most significant bits (most signiciant or least significant does not matter here)
-    we take those 2 bits as a 2^2 number, 4 segments total. This lets us decide which seven segment display to refresh.
-    */
     wire [1:0]  digit = refresh[REFRESH_BITS-1 -: 2];  
-    wire [15:0] sw_shifted = switches >> {digit, 2'b00}; // this is the switch number to be displayed on the 7 segment display
-    reg  [4:0]  code; // {blank, nibble} where blank tells us if we should display a blank integer, and nibble is our number.
+
+    
+    wire [15:0] sw_shifted = switches >> {digit, 2'b00}; // input switches are shifted by 0, 4, 8 or 12 decimals depending on current digit
+    reg  [4:0]  code; // {blank flag, hex nibble} blank being a flag for empty spaces
 
     always @(*) begin
     case (hexOrDecimal)
         1'b0: case (state)
             S_A, S_B: code = {1'b0, sw_shifted[3:0]};  // live switch value
-            //grab the number at the index specified.
             S_SHOW:   code = buf_at({1'b0, pos} + (5'd3 - digit), prod);
             default:  code = 5'b10000;
         endcase
@@ -215,7 +207,7 @@ module top #(
             S_SHOW:   code = decimalAt(pos+digit, vedic_bcd);
             default:  code = 5'b10000;
          endcase
-         default: code = 5'b10000; //should never happen. Unless pos magically became x or z
+         default: code = 5'b10000; //failsafe
         endcase
     end
 
@@ -223,7 +215,7 @@ module top #(
         an = ~(4'b0001 << digit);
         if (code[4])
             seg = 7'b1111111;                         // blank
-        else case (code[3:0])                         //   gfedcba
+        else case (code[3:0])
             4'h0: seg = 7'b1000000;
             4'h1: seg = 7'b1111001;
             4'h2: seg = 7'b0100100;
@@ -251,8 +243,6 @@ module top #(
         led[0] = (state == S_A);
         led[1] = (state == S_B);
         led[2] = (state == S_SHOW);
-        //led 3 = hex on
-        //led 4 = decimal on
         led[3] = (1'b0 == hexOrDecimal);
         led[4] = (1'b1 == hexOrDecimal);
     end
