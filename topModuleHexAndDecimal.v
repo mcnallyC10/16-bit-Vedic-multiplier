@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 module top #(
-    parameter DEBOUNCE_BITS = 20,          // 2^20 cycles @ 100 MHz = ~10.5 ms
+    parameter DEBOUNCE_BITS = 20          // 2^20 cycles @ 100 MHz = ~10.5 ms
 )(
     input  wire        clk,                // 100 MHz
     input  wire [15:0] sw,
