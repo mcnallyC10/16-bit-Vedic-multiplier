@@ -65,7 +65,6 @@ module sixteenRCA(A,B,S);
   
   
   wire [14:0]w;
-  reg GND;
   
   FA fa1(A[0],B[0], 1'b0,S[0], w[0]);
   FA fa2(A[1],B[1], w[0],S[1], w[1]);
@@ -82,7 +81,7 @@ module sixteenRCA(A,B,S);
   FA fa13(A[12],B[12], w[11],S[12], w[12]);
   FA fa14(A[13],B[13], w[12],S[13], w[13]);
   FA fa15(A[14],B[14], w[13],S[14], w[14]);
-  FA fa16(A[15],B[15], w[14],S[15], GND);
+  FA fa16(A[15],B[15], w[14],S[15], 1'b0);
   
   
 endmodule 
